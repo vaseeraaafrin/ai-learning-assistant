@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - AI Learning Assistant{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <div class="welcome-section">
+        <h1>Welcome back, {{ username }}!</h1>
+        <p>Continue your learning journey with personalized recommendations</p>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="card">
+            <h2>Your Skills</h2>
+            <form method="POST" action="{{ url_for('add_skill') }}" class="skill-form">
+                <div class="input-group">
+                    <input type="text" name="skill_name" class="form-control" placeholder="Add a new skill (e.g., Python, Java)" required>
+                    <button type="submit" class="btn btn-primary">Add Skill</button>
+                </div>
+            </form>
+
+            <div class="skills-list">
+                {% if skills %}
+                    {% for skill in skills %}
+                    <div class="skill-item">
+                        <div class="skill-info">
+                            <span class="skill-name">{{ skill['skill_name'] }}</span>
+                            <span class="skill-level level-{{ skill['skill_level'].lower() }}">{{ skill['skill_level'] }}</span>
+                        </div>
+                        <div class="skill-actions">
+                            <a href="{{ url_for('quiz', skill=skill['skill_name']) }}" class="btn btn-sm btn-secondary">Take Quiz</a>
+                            <a href="{{ url_for('delete_skill', skill_id=skill['id']) }}" class="btn btn-sm btn-danger" onclick="return confirm('Remove this skill?')">Remove</a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="empty-state">No skills added yet. Add your first skill to get started!</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Recommended Courses</h2>
+            <div class="courses-list">
+                {% if recommendations %}
+                    {% for course in recommendations %}
+                    <div class="course-item">
+                        <div class="course-header">
+                            <h3>{{ course['name'] }}</h3>
+                            <span class="course-level level-{{ course['level'].lower() }}">{{ course['level'] }}</span>
+                        </div>
+                        <p class="course-description">{{ course['description'] }}</p>
+                        {% if course.get('similarity') %}
+                        <div class="match-score">
+                            <div class="match-bar">
+                                <div class="match-fill" style="width: {{ course['similarity'] }}%"></div>
+                            </div>
+                            <span class="match-text">{{ course['similarity'] }}% match</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="empty-state">Add skills to get personalized course recommendations!</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Recent Quiz Results</h2>
+        <div class="quiz-results">
+            {% if quiz_results %}
+                <table class="results-table">
+                    <thead>
+                        <tr>
+                            <th>Skill</th>
+                            <th>Score</th>
+                            <th>Level</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for result in quiz_results %}
+                        <tr>
+                            <td>{{ result['skill_name'] }}</td>
+                            <td>{{ result['score'] }}/{{ result['total_questions'] }}</td>
+                            <td><span class="skill-level level-{{ result['skill_level'].lower() }}">{{ result['skill_level'] }}</span></td>
+                            <td>{{ result['taken_at'] }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="empty-state">No quiz results yet. Take a quiz to assess your skills!</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

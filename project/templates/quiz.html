@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}Quiz - AI Learning Assistant{% endblock %}
+
+{% block content %}
+<div class="quiz-container">
+    <div class="quiz-header">
+        <h1>{{ skill }} Skill Assessment</h1>
+        <p>Test your knowledge and discover your skill level</p>
+    </div>
+
+    <div class="quiz-card" id="quiz-section">
+        <div class="quiz-progress">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill"></div>
+            </div>
+            <span class="progress-text">Question <span id="current-question">1</span> of <span id="total-questions">10</span></span>
+        </div>
+
+        <div class="question-section">
+            <h2 id="question-text">Loading question...</h2>
+            <div class="options-container" id="options-container">
+            </div>
+        </div>
+
+        <div class="quiz-navigation">
+            <button id="next-btn" class="btn btn-primary" style="display: none;">Next Question</button>
+        </div>
+    </div>
+
+    <div class="quiz-card" id="result-section" style="display: none;">
+        <div class="result-content">
+            <h2>Quiz Completed!</h2>
+            <div class="result-score">
+                <div class="score-circle">
+                    <span id="score-text">0/10</span>
+                </div>
+                <div class="score-details">
+                    <h3>Your Skill Level: <span id="skill-level" class="skill-level">Beginner</span></h3>
+                    <p id="result-message">Great job! Keep learning and improving.</p>
+                </div>
+            </div>
+            <div class="result-actions">
+                <a href="{{ url_for('dashboard') }}" class="btn btn-primary">Back to Dashboard</a>
+                <a href="{{ url_for('quiz', skill=skill) }}" class="btn btn-secondary">Retake Quiz</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const skill = "{{ skill }}";
+    let questions = [];
+    let currentQuestion = 0;
+    let score = 0;
+    let selectedAnswer = null;
+
+    // Quiz questions from backend
+    const quizData = {{ quiz_questions | tojson }};
+
+    function initQuiz() {
+        questions = quizData;
+        document.getElementById('total-questions').textContent = questions.length;
+        loadQuestion();
+    }
+
+    function loadQuestion() {
+        if (currentQuestion >= questions.length) {
+            showResults();
+            return;
+        }
+
+        const question = questions[currentQuestion];
+        document.getElementById('question-text').textContent = question.question;
+        document.getElementById('current-question').textContent = currentQuestion + 1;
+
+        const optionsContainer = document.getElementById('options-container');
+        optionsContainer.innerHTML = '';
+
+        question.options.forEach((option, index) => {
+            const optionDiv = document.createElement('div');
+            optionDiv.className = 'option';
+            optionDiv.textContent = option;
+            optionDiv.onclick = () => selectOption(index, optionDiv);
+            optionsContainer.appendChild(optionDiv);
+        });
+
+        document.getElementById('next-btn').style.display = 'none';
+        updateProgress();
+    }
+
+    function selectOption(index, element) {
+        const options = document.querySelectorAll('.option');
+        options.forEach(opt => {
+            opt.classList.remove('selected', 'correct', 'incorrect');
+        });
+
+        const question = questions[currentQuestion];
+        selectedAnswer = index;
+
+        if (index === question.answer) {
+            element.classList.add('correct');
+            score++;
+        } else {
+            element.classList.add('incorrect');
+            options[question.answer].classList.add('correct');
+        }
+
+        options.forEach(opt => opt.onclick = null);
+        document.getElementById('next-btn').style.display = 'block';
+    }
+
+    function updateProgress() {
+        const progress = ((currentQuestion) / questions.length) * 100;
+        document.getElementById('progress-fill').style.width = progress + '%';
+    }
+
+    function showResults() {
+        document.getElementById('quiz-section').style.display = 'none';
+        document.getElementById('result-section').style.display = 'block';
+
+        const percentage = (score / questions.length) * 100;
+        let skillLevel = 'Beginner';
+        let message = '';
+
+        if (percentage >= 80) {
+            skillLevel = 'Advanced';
+            message = 'Excellent! You have advanced knowledge in ' + skill + '!';
+        } else if (percentage >= 60) {
+            skillLevel = 'Intermediate';
+            message = 'Good job! You have intermediate knowledge in ' + skill + '.';
+        } else {
+            skillLevel = 'Beginner';
+            message = 'Keep learning! Practice more to improve your ' + skill + ' skills.';
+        }
+
+        document.getElementById('score-text').textContent = score + '/' + questions.length;
+        document.getElementById('skill-level').textContent = skillLevel;
+        document.getElementById('skill-level').className = 'skill-level level-' + skillLevel.toLowerCase();
+        document.getElementById('result-message').textContent = message;
+
+        fetch('/submit_quiz', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                skill: skill,
+                score: score,
+                total: questions.length
+            })
+        });
+    }
+
+    document.getElementById('next-btn').onclick = () => {
+        currentQuestion++;
+        selectedAnswer = null;
+        loadQuestion();
+    };
+
+    window.onload = initQuiz;
+</script>
+{% endblock %}

@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}AI Chat - AI Learning Assistant{% endblock %}
+
+{% block content %}
+<div class="chat-container">
+    <div class="chat-header">
+        <h1>AI Learning Assistant</h1>
+        <p>Ask me anything about programming, courses, or learning tips!</p>
+    </div>
+
+    <div class="chat-box" id="chat-box">
+        <div class="chat-message bot-message">
+            <div class="message-content">
+                <strong>AI Assistant:</strong>
+                <p>Hello! I'm your AI Learning Assistant. I can help you with course recommendations, programming questions, study tips, and career advice. What would you like to know?</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="chat-input-container">
+        <input type="text" id="user-input" class="chat-input" placeholder="Type your message here..." />
+        <button onclick="sendMessage()" class="btn btn-primary">Send</button>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const chatBox = document.getElementById('chat-box');
+    const userInput = document.getElementById('user-input');
+
+    function sendMessage() {
+        const message = userInput.value.trim();
+        if (!message) return;
+
+        addMessage(message, 'user');
+        userInput.value = '';
+
+        fetch('/chat_message', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ message: message })
+        })
+        .then(response => response.json())
+        .then(data => {
+            addMessage(data.response, 'bot');
+        })
+        .catch(error => {
+            addMessage('Sorry, I encountered an error. Please try again.', 'bot');
+        });
+    }
+
+    function addMessage(text, sender) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'chat-message ' + (sender === 'user' ? 'user-message' : 'bot-message');
+
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'message-content';
+
+        const label = sender === 'user' ? 'You' : 'AI Assistant';
+        contentDiv.innerHTML = '<strong>' + label + ':</strong><p>' + text + '</p>';
+
+        messageDiv.appendChild(contentDiv);
+        chatBox.appendChild(messageDiv);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    userInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
+    });
+</script>
+{% endblock %}
